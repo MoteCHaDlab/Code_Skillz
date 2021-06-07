@@ -1,0 +1,224 @@
+---
+title: "Heat Trees"
+output:
+  html_notebook: default
+  pdf_document: default
+---
+ignore unless need to make pdf
+```{r}
+library(knitr)
+opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
+```
+
+Code written by Samara Zinman (Samara.zinman@gmail.com) and Edited by Sara Williams (swilliams@mote.org).
+
+
+# Heat Trees
+## Useful links
+R documentation for parse_phyloseq(): https://rdrr.io/cran/metacoder/man/parse_phyloseq.html
+R documentation for heat_tree(): https://rdrr.io/cran/metacoder/man/heat_tree.html
+Useful microbiome page that uses heat trees: https://grunwaldlab.github.io/analysis_of_microbiome_community_data_in_r/05--plotting.html
+
+## What are heat trees?
+Heat trees are a heatmap placed onto a cladogram. It shows the abundances of various clades on each taxonomic level in your samples. Heat trees can display pure abundance of taxa or it can display the ratio of taxa between 2 groups (i.e. Upper and Lower Keys). The code for heat trees comes from the Metacoder package.
+## What can they be used for?
+Heat trees nicely compliment your various diversity metrics/plots and relative abundance plots. Where the relative abundance only shows the abundances over 1 taxonomic level, the heat tree shows the abundances and how they vary across all of the taxonomic levels. Diversity plots show what the diversity is but not where the diversity is, but the heat trees show where the diversity is and which clades your data favors. 
+## Heat tree code
+### Load packages
+```{r Packages}
+library("metacoder")
+library("vegan")
+library("dplyr")
+library("ggplot2")
+library("agricolae")
+library("phyloseq")
+library("patchwork")
+```
+
+### Load phyloseq objects, filter, and transform to relative abundance
+```{r load phyloseq objects}
+ps_acer<-readRDS("examplePhyloseq.rds") #Load phyloseq object
+ps_acer<-subset_taxa(ps_acer,Kingdom=="Bacteria") #filter out Archaea 
+ps_acer <- transform_sample_counts(ps_acer, function(x) x*100/sum(x)) #transform to relative abundance
+ps_acer #check that it works
+pslow <- subset_samples(ps_acer, Region == "Lower Keys") #load phyloseq object
+pslow<-subset_taxa(pslow,Kingdom=="Bacteria") #filter out Archaea
+pslow <- transform_sample_counts(pslow, function(x) x*100/sum(x)) #transform to relative abundance
+pslow
+psmid <- subset_samples(ps_acer, Region == "Middle Keys") #load phyloseq object
+psmid <-subset_taxa(psmid,Kingdom=="Bacteria") #filter out Archaea
+psmid <- transform_sample_counts(psmid, function(x) x*100/sum(x)) #transform to relative abundance
+psmid
+psup <- subset_samples(ps_acer, Region == "Upper Keys") #load phyloseq object
+psup <-subset_taxa(psup,Kingdom=="Bacteria") #filter out Archaea
+psup <- transform_sample_counts(psup, function(x) x*100/sum(x)) #transform to relative abundance
+psup
+```
+
+### make taxmap object
+What is a taxmap object?
+A taxmap object is an object that is designed to store taxonomy and associated information. It is very similar to phyloseq objects, but not quite identical, especially with the otu tables. So, converting from phyloseq objects or the .csv data that goes into them into a taxmap object can be difficult. Thus, we use a parse_phyloseq() function that does all the work for us.
+
+what is parse_phyloseq()?
+parse_phyloseq() is a function that converts your phyloseq object to a taxmap object
+
+What goes in?
+-> your phyloseq object
+
+What goes out?
+-> a taxmap object
+
+```{r make taxmap objects}
+obj <- parse_phyloseq(ps_acer) 
+obj
+objlow <- parse_phyloseq(pslow)
+objlow
+objmid <- parse_phyloseq(psmid)
+objmid
+objup <- parse_phyloseq(psup)
+objup
+```
+### Make a heat tree
+Heat trees are object type list. They are a list of different data, like taxonomy and abundances, but within this list is the plot that is printed when you run heat_tree().
+
+What goes in?
+-> your taxmap object
+
+What goes out?
+-> a list of various data as well as a heat tree plot
+
+```{r make heat tree}
+heat_tree(obj, #load your tax map object
+          node_size = n_obs, #set size of the nodes to scale with the relative abundance (n_obs is the relative abundance in the taxmap object)
+          node_color = n_obs, #set the color of the nodes to scale with the relative abundance
+          node_label = taxon_names, #label the nodes with the taxon information (taxon_names is a part of the taxmap object)
+          tree_label = taxon_names) #label the tree with the taxon information (in this case Bacteria)
+          #If you had more than one kingdom, there would be 2 trees, each with its own taxon label since we fed taxon_names from the taxmap object into tree_label
+```
+
+
+### Cleaning your taxmap object
+Taxmap objects, like phyloseq objects, have their own code for cleaning your object. So where phyloseq objects have transform_sample_counts() to convert to relative abundance, taxmap objects have calc_obs_props(), which, in this case, converts our relative abundances to proportions.
+
+here use the function calc_obs_props to divide each sample's counts by the total number of counts observed for each sample, resulting in a proportion that can be used for a cleaner heat tree
+```{r Cleaning your taxmap object}
+obj$data$tax_abund <- calc_taxon_abund(obj, "otu_table", cols = obj$data$sample_data$sample_id) #converts per-observation counts (abundance) to per-taxon counts (abundance); put in your taxmap object, the per-observation counts (e.g. OTU table, then set the columns to the sample names (e.g. AC1.4); the rows are taxa
+obj$data$otu_table <- calc_obs_props(obj, "otu_table") #converts otu counts to proportions
+obj$data$tax_occ <- calc_n_samples(obj,"tax_abund", groups = obj$data$sample_data$Region, cols = obj$data$sample_data$sample_id) #calculate the number of columns with greater abundance than 0
+```
+
+### Heat tree
+So now that the data has been cleaned, lets make the heat tree again.
+```{r make another heat tree}
+set.seed(1) # this makes the plot appear the same each time it is run
+ht<-heat_tree(obj, #taxmap object
+          node_label = taxon_names, #set node labels to the taxonomy information
+          tree_label = "Bacterial abundances as proportions", #give the tree a title
+          node_size = n_obs, #set node size to scale with abundance proportions
+          node_color = n_obs, #set node color to scale with abundance proportions
+          node_size_axis_label = "OTU count", #set label for size scale legend
+          node_color_axis_label = "Samples with reads", #set label for color scale legend
+          node_label_size = n_obs, #set the node labels to scale with size, so more abundant taxa have bigger labels
+          layout = "davidson-harel", # the primary layout algorithm
+          initial_layout = "reingold-tilford") # the layout algorithm that initializes node locations
+ht #view heat tree
+ggsave("htprop.png", ht, width = 120, height = 120, units = "cm", dpi = 400) #save heat tree as a .png
+```
+So, the differences in abundance-related information isn't noticable. But it is still better to run in proportions because its useful for feeding into difference tables later.
+
+
+### Compare data by region to make a difference table
+What is a difference table? 
+A difference table is a table of comparisons of various points between your groups (e.g. lower keys versus upper keys). It contains a few different comparison types: log2_median_ratio, median_diff, mean_diff, and wilcox_p_value. Difference tables are needed for making differential heat trees and differential heat tree matrices.
+
+What goes in?
+-> your taxmap object
+
+What goes out?
+-> a difference table
+```{r difference table}
+obj$data$diff_table <- compare_groups(obj, dataset = "tax_abund", cols = obj$data$sample_data$sample_id, groups = obj$data$sample_data$Region) #compare every pairwise combination of regions; taxmap object, choose dataset within taxmap obj (in this case tax_abund), set columns to sample id (e.g. AC1.4), set the groups for comparison to region
+obj$data$diff_table #view difference table
+```
+### Make a differential heat tree
+What is a differential heat tree?
+A differential heat tree is a heat tree where rather than showing abundance across the tree, it shows the ratio of abundance for 1 group to another(e.g. abundance in lower keys:abundance in upper keys).
+
+What goes in?
+-> your taxmap object complete with your difference table
+
+What goes out
+-> a differential heat tree
+```{r differential heat tree}
+set.seed(999) #this makes the plot appear the same each time it is run
+ht<-heat_tree(obj, 
+          node_label = taxon_names, #set node labels to the taxonomy information 
+          node_size = n_obs, #set the node size to scale with abundance proportions
+          node_color = log2_median_ratio, #set the node color size to log2_median_ratio (a column from `obj$data$diff_table`), a ratio that displays which group (or region) taxa's abundances favor
+          node_color_interval = c(-2, 2), #set the node color interval to the range of `log2_median_ratio`
+          node_color_range = c("cyan", "grey", "tan"), #set the color palette to be used for the node color range
+          node_size_axis_label = "OTU count", #title the node size scale legend
+          node_color_axis_label = "Log 2 ratio of median proportions", #title the node color scale legend
+          layout = "davidson-harel", #the primary layout algorithm
+          initial_layout = "reingold-tilford") #the layout algorithm that initializes node locations
+ht #print the heat tree
+#ggsave("heattreecomp2.tiff", plot = ht, width = 120, height = 120, units = "cm", dpi = 400)
+```
+So this heat tree is great if you have 2 groups. But, we have 3 groups so we need to look at this data as a different heat tree format: a differential heat tree matrix.
+
+### Build the difference table again, this time for the differential heat tree matrix
+```{r make another difference table}
+obj$data$diff_table$wilcox_p_value <- p.adjust(obj$data$diff_table$wilcox_p_value, method = "fdr") #run an fdr adjustment on the wilcox p-values
+obj$data$diff_table$log2_median_ratio[obj$data$diff_table$wilcox_p_value > 0.05] <- 0 #set ratios where the difference between groups is not significantly different to 0
+obj$data$diff_table <- compare_groups(obj, dataset = "tax_abund", cols = obj$data$sample_data$sample_id, groups = obj$data$sample_data$Region) #build the difference table
+obj$data$diff_table #confirm it worked
+```
+
+## Heat tree matrix
+### by region
+What is a heat tree matrix?
+A heat tree matrix is a series of differential heat trees in a matrix format. They are used when you are trying to compare more than 2 groups (i.e. our 3 regions).
+
+What goes in?
+-> your taxmap object
+
+What goes out?
+-> a heat tree matrix
+-> a pdf of the heat tree matrix
+
+How do you read the colors in a heat tree matrix?
+A taxon colored brown is more abundant in the group colored brown and a taxon colored blue-green is more abundant in the group colored blue-green
+```{r make a heat tree matrix}
+set.seed(1) #this makes the plot appear the same each time it is run
+obj %>% #set heat_tree_matrix() to run with your taxmap object
+  heat_tree_matrix(dataset = "diff_table", #select the dataset within taxmap to the difference table
+                   node_label = taxon_names, #set the node labels to the taxonomy information
+                   node_size = n_obs, #set the node size to scale with the differential abundance ratios
+                   node_color = log2_median_ratio, #set the node color to scale with the differential abundance ratios
+                   node_label_size = n_obs, #set the node label size to scale with the differential abundance ratios
+                   node_color_trans = "linear", #set the color transformation to linear
+                   node_color_interval = c(-3, 3), #set the node color interval to match the ratio range
+                   edge_color_interval = c(-3, 3), #set the edge color interval to match the ratio range
+                   node_color_range = diverging_palette(), #set the node color palette 
+                   node_size_axis_label = "OTU count", #title the node size legend
+                   node_color_axis_label = "Log 2 ratio of median counts", #title the node color legend
+                   layout = "da", initial_layout = "re", #set the layout algorithms
+                   key_size = 0.67, #set the size of the key tree (aka the legend tree that shows the taxonomy information)
+                   seed = 2, #random seed used to make the graphs
+                   output_file = "differential_heat_tree.pdf") #set the name to save the heat tree as a file (along the same lines as ggsave)
+```
+Differential heat tree matrices are useful on their own. But they tell a better story alongside normal heat trees of each region. That way you can see both the difference between regions and what the general abundance is in each region, allowing you to better understand why the differenital heat tree matrix is colored the way it is.
+
+### Individual location heat trees for comparison
+```{r make individual heat trees}
+heattr <- function(o, title){
+  set.seed(1)
+  h<-heat_tree(o,node_label = taxon_names,tree_label = title,node_size = n_obs, node_color = n_obs,node_size_axis_label = "OTU count",node_color_axis_label = "Samples with reads",node_label_color = "white",layout = "davidson-harel",initial_layout = "reingold-tilford")
+  h
+}
+heatlow<-heattr(objlow, "Lower Keys")
+heatmid<-heattr(objmid, "Middle Keys")
+heatup<-heattr(objup, "Upper Keys")
+heatlow + heatmid + heatup + plot_layout(guides = "collect")
+```
+
