@@ -12,6 +12,7 @@ opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
 
 Code written by Samara Zinman (Samara.zinman@gmail.com) and Edited by Sara Williams (swilliams@mote.org).
 
+Data (the necessary phyloseq object) sent out in an email the week of code skillz.
 
 # Heat Trees
 ## Useful links
