@@ -21,7 +21,7 @@ R documentation for heat_tree(): https://rdrr.io/cran/metacoder/man/heat_tree.ht
 Useful microbiome page that uses heat trees: https://grunwaldlab.github.io/analysis_of_microbiome_community_data_in_r/05--plotting.html
 
 ## What are heat trees?
-Heat trees are a heatmap placed onto a cladogram. It shows the abundances of various clades on each taxonomic level in your samples. Heat trees can display pure abundance of taxa or it can display the ratio of taxa between 2 groups (i.e. Upper and Lower Keys). The code for heat trees comes from the Metacoder package.
+Heat trees are a heat map imposed on a cladogram. It shows the abundances of various clades on each taxonomic level in your samples. Heat trees can display pure abundance of taxa or it can display the ratio of taxa abundances between 2 groups (i.e. Upper and Lower Keys). The function for making heat trees comes from the Metacoder package.
 ## What can they be used for?
 Heat trees nicely compliment your various diversity metrics/plots and relative abundance plots. Where the relative abundance only shows the abundances over 1 taxonomic level, the heat tree shows the abundances and how they vary across all of the taxonomic levels. Diversity plots show what the diversity is but not where the diversity is, but the heat trees show where the diversity is and which clades your data favors. 
 ## Heat tree code
