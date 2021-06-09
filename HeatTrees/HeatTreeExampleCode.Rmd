@@ -127,7 +127,7 @@ ht<-heat_tree(obj, #taxmap object
           layout = "davidson-harel", # the primary layout algorithm
           initial_layout = "reingold-tilford") # the layout algorithm that initializes node locations
 ht #view heat tree
-ggsave("htprop.png", ht, width = 120, height = 120, units = "cm", dpi = 400) #save heat tree as a .png
+#ggsave("htprop.png", ht, width = 120, height = 120, units = "cm", dpi = 400) #save heat tree as a .png
 ```
 So, the differences in abundance-related information isn't noticable. But it is still better to run in proportions because its useful for feeding into difference tables later.
 
