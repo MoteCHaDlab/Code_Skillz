@@ -60,6 +60,8 @@ What goes out?
 ```{r make taxmap objects}
 obj <- parse_phyloseq(ps_acer) 
 obj
+detach("package:phyloseq", unload = TRUE) #this line deselects the phyloseq package
+#the line above is used because we no longer need the phyloseq package and it has overlapping function names with the taxa package. So in order for our code to compile later, we need to deselect phyloseq.
 ```
 ### Make a heat tree
 Heat trees are object type list. They are a list of different data, like taxonomy and abundances, but within this list is the plot that is printed when you run heat_tree().
@@ -91,21 +93,23 @@ obj$data$tax_occ <- calc_n_samples(obj,"tax_abund", groups = obj$data$sample_dat
 ```
 
 ### Heat tree
-So now that the data has been cleaned, lets make the heat tree again.
+So now that the data has been cleaned, lets make the heat tree again. But this time, we are going to add in some lines to make the labels legible!
 ```{r make another heat tree}
 set.seed(1) # this makes the plot appear the same each time it is run
-ht<-heat_tree(obj, #taxmap object
-          node_label = taxon_names, #set node labels to the taxonomy information
-          tree_label = "Bacterial abundances as proportions", #give the tree a title
-          node_size = n_obs, #set node size to scale with abundance proportions
-          node_color = n_obs, #set node color to scale with abundance proportions
-          node_size_axis_label = "OTU count", #set label for size scale legend
-          node_color_axis_label = "Samples with reads", #set label for color scale legend
-          node_label_size = n_obs, #set the node labels to scale with size, so more abundant taxa have bigger labels
-          layout = "davidson-harel", # the primary layout algorithm
-          initial_layout = "reingold-tilford") # the layout algorithm that initializes node locations
+ht<-obj %>% #set heat_tree_matrix() to run with your taxmap object
+          filter_taxa(grepl(pattern = "^[a-zA-Z]+$", taxon_names),reassign_obs = FALSE) %>% #remove the taxa with odd names like “Ellin329” and “BD7−3” since they do not effect the outcome of our plots besides taking up space for bacteria with negligible abundances; you should be sure to check that they are negligible in your data before using this line!
+          heat_tree(node_label = taxon_names, #set node labels to the taxonomy information
+            repel_labels = TRUE,#this prevents the labels from overlapping
+            tree_label = "Bacterial abundances as proportions", #give the tree a title
+            node_size = n_obs, #set node size to scale with abundance proportions
+            node_color = n_obs, #set node color to scale with abundance proportions
+            node_size_axis_label = "OTU count", #set label for size scale legend
+            node_color_axis_label = "Samples with reads", #set label for color scale legend
+            node_label_size = n_obs, #set the node labels to scale with size, so more abundant taxa have bigger labels
+            layout = "davidson-harel", # the primary layout algorithm
+            initial_layout = "reingold-tilford") # the layout algorithm that initializes node locations
 ht #view heat tree
-#ggsave("htprop.png", ht, width = 120, height = 120, units = "cm", dpi = 400) #save heat tree as a .png
+ggsave("htprop.png", ht, width = 120, height = 120, units = "cm", dpi = 400) #save heat tree as a .png
 ```
 So, the differences in abundance-related information isn't noticable. But it is still better to run in proportions because its useful for feeding into difference tables later.
 
@@ -134,16 +138,18 @@ What goes out
 -> a differential heat tree
 ```{r differential heat tree}
 set.seed(999) #this makes the plot appear the same each time it is run
-ht<-heat_tree(obj, 
-          node_label = taxon_names, #set node labels to the taxonomy information 
-          node_size = n_obs, #set the node size to scale with abundance proportions
-          node_color = log2_median_ratio, #set the node color size to log2_median_ratio (a column from `obj$data$diff_table`), a ratio that displays which group (or region) taxa's abundances favor
-          node_color_interval = c(-2, 2), #set the node color interval to the range of `log2_median_ratio`
-          node_color_range = c("cyan", "grey", "tan"), #set the color palette to be used for the node color range
-          node_size_axis_label = "OTU count", #title the node size scale legend
-          node_color_axis_label = "Log 2 ratio of median proportions", #title the node color scale legend
-          layout = "davidson-harel", #the primary layout algorithm
-          initial_layout = "reingold-tilford") #the layout algorithm that initializes node locations
+ht<-obj %>% #set heat_tree_matrix() to run with your taxmap object
+          filter_taxa(grepl(pattern = "^[a-zA-Z]+$", taxon_names),reassign_obs = FALSE) %>% #remove the taxa with odd names like “Ellin329” and “BD7−3” since they do not effect the outcome of our plots besides taking up space for bacteria with negligible abundances; you should be sure to check that they are negligible in your data before using this line!
+      heat_tree(node_label = taxon_names, #set node labels to the taxonomy information 
+                repel_labels = TRUE, #this prevents the labels from overlapping
+                node_size = n_obs, #set the node size to scale with abundance proportions
+                node_color = log2_median_ratio, #set the node color size to log2_median_ratio (a column from `obj$data$diff_table`), a ratio that displays which group (or region) taxa's abundances favor
+                node_color_interval = c(-2, 2), #set the node color interval to the range of `log2_median_ratio`
+                node_color_range = c("cyan", "grey", "tan"), #set the color palette to be used for the node color range
+                node_size_axis_label = "OTU count", #title the node size scale legend
+                node_color_axis_label = "Log 2 ratio of median proportions", #title the node color scale legend
+                layout = "davidson-harel", #the primary layout algorithm
+                initial_layout = "reingold-tilford") #the layout algorithm that initializes node locations
 ht #print the heat tree
 #ggsave("heattreecomp2.tiff", plot = ht, width = 120, height = 120, units = "cm", dpi = 400)
 ```
@@ -174,11 +180,13 @@ A taxon colored brown is more abundant in the group colored brown and a taxon co
 ```{r make a heat tree matrix}
 set.seed(1) #this makes the plot appear the same each time it is run
 obj %>% #set heat_tree_matrix() to run with your taxmap object
-  heat_tree_matrix(dataset = "diff_table", #select the dataset within taxmap to the difference table
+          filter_taxa(grepl(pattern = "^[a-zA-Z]+$", taxon_names),reassign_obs = FALSE) %>% #remove the taxa with odd names like “Ellin329” and “BD7−3” since they do not effect the outcome of our plots besides taking up space for bacteria with negligible abundances; you should be sure to check that they are negligible in your data before using this line!
+            heat_tree_matrix(dataset = "diff_table", #select the dataset within taxmap to the difference table
                    node_label = taxon_names, #set the node labels to the taxonomy information
                    node_size = n_obs, #set the node size to scale with the differential abundance ratios
                    node_color = log2_median_ratio, #set the node color to scale with the differential abundance ratios
-                   node_label_size = n_obs, #set the node label size to scale with the differential abundance ratios
+                   node_label_size = 0.035, #set the node label size
+                   repel_labels = TRUE, #stops the labels from overlapping
                    node_color_trans = "linear", #set the color transformation to linear
                    node_color_interval = c(-3, 3), #set the node color interval to match the ratio range
                    edge_color_interval = c(-3, 3), #set the edge color interval to match the ratio range
