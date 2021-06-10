@@ -1,0 +1,96 @@
+---
+title: "playing with heat trees"
+output: html_notebook
+---
+
+### Load packages
+```{r Packages}
+library("metacoder")
+library("dplyr")
+library("ggplot2")
+library("agricolae")
+library("patchwork")
+library("vegan")
+library("phyloseq")
+```
+
+
+```{r make taxmap objects}
+ps_acer<-readRDS("examplePhyloseq.rds") #Load phyloseq object
+ps_acer<-subset_taxa(ps_acer,Kingdom=="Bacteria") #filter out Archaea 
+ps_acer <- transform_sample_counts(ps_acer, function(x) x*100/sum(x)) #transform to relative abundance
+ps_acer #check that it works
+obj<-parse_phyloseq(ps_acer)
+detach("package:phyloseq", unload = TRUE)
+```
+
+```{r Cleaning your taxmap object}
+obj$data$tax_data <- zero_low_counts(obj, dataset = "tax_data", min_count = 10)
+obj$data$tax_abund <- calc_taxon_abund(obj, "otu_table", cols = obj$data$sample_data$sample_id) #converts per-observation counts (abundance) to per-taxon counts (abundance); put in your taxmap object, the per-observation counts (e.g. OTU table, then set the columns to the sample names (e.g. AC1.4); the rows are taxa
+obj$data$otu_table <- calc_obs_props(obj, "otu_table") #converts otu counts to proportions
+obj$data$tax_occ <- calc_n_samples(obj,"tax_abund", groups = obj$data$sample_data$Region, cols = obj$data$sample_data$sample_id) #calculate the number of columns with greater abundance than 0
+obj$data$tax_occ
+#objtax0<-data.frame(obj$data$tax_occ$`Lower Keys`+obj$data$tax_occ$`Middle Keys`+obj$data$tax_occ$`Upper Keys`)
+#colnames(objtax0)<-"FullAbund"
+#objtax0<-cbind(obj$data$tax_occ$taxon_id,objtax0)
+#objtax<-cbind(obj$data$tax_occ$taxon_id,objtax0)
+#objtax
+#objtax<-subset(objtax,objtax$FullAbund>2)
+#colnames(objtax)<-c("taxon_id","FullAbund")
+#objtax
+#obj<-filter_taxa(obj, objtax$taxon_id)
+#objtax0<-subset(objtax0,objtax0$FullAbund>8)
+```
+
+```{r make a heat tree}
+
+set.seed(1) # this makes the plot appear the same each time it is run
+ht<-obj %>%
+          filter_taxa(grepl(pattern = "^[a-zA-Z]+$", taxon_names)) %>% # remove "odd" taxa       
+          heat_tree(
+          node_label = taxon_names, #set node labels to the taxonomy information
+          node_label_size=n_obs,
+          node_size = n_obs, #set node size to scale with abundance proportions
+          node_color = n_obs, #set node color to scale with abundance proportions
+          node_size_axis_label = "OTU count", #set label for size scale legend
+          node_color_axis_label = "Samples with reads", #set label for color scale legend
+          #node_label_size = nobs, #set the node labels to scale with size, so more abundant taxa have bigger labels
+          repel_labels = TRUE,
+          layout = "davidson-harel", # the primary layout algorithm
+          initial_layout = "reingold-tilford") # the layout algorithm that initializes node locations
+ht #view heat tree
+ggsave("htsmall.png", ht, width = 120, height = 120, units = "cm", dpi = 400) #save heat tree as a .png
+
+```
+
+```{r make a difference table}
+obj$data$diff_table$wilcox_p_value <- p.adjust(obj$data$diff_table$wilcox_p_value, method = "fdr") #run an fdr adjustment on the wilcox p-values
+obj$data$diff_table$log2_median_ratio[obj$data$diff_table$wilcox_p_value > 0.05] <- 0 #set ratios where the difference between groups is not significantly different to 0
+obj$data$diff_table <- compare_groups(obj, dataset = "tax_abund", cols = obj$data$sample_data$sample_id, groups = obj$data$sample_data$Region) #build the difference table
+obj$data$diff_table #confirm it worked
+#obj<-obj %>% filter_taxa(grepl(pattern = "^[a-zA-Z]+$", taxon_names,reassign_obs = c(diff_site = FALSE)))
+```
+
+```{r make a heat tree matrix}
+set.seed(1) #this makes the plot appear the same each time it is run
+hm<-obj %>% #set heat_tree_matrix() to run with your taxmap object
+          filter_taxa(grepl(pattern = "^[a-zA-Z]+$", taxon_names),reassign_obs = FALSE) %>%
+        heat_tree_matrix(dataset = "diff_table", #select the dataset within taxmap to the difference table
+                   node_label = taxon_names, #set the node labels to the taxonomy information
+                   node_size = n_obs, #set the node size to scale with the differential abundance ratios
+                   node_color = log2_median_ratio, #set the node color to scale with the differential abundance ratios
+                   node_label_size = 0.035, #set the node label size to scale with the differential abundance ratios
+                    repel_labels = TRUE,
+                   node_color_trans = "linear", #set the color transformation to linear
+                   node_color_interval = c(-3, 3), #set the node color interval to match the ratio range
+                   edge_color_interval = c(-3, 3), #set the edge color interval to match the ratio range
+                   node_color_range = diverging_palette(), #set the node color palette 
+                   node_size_axis_label = "OTU count", #title the node size legend
+                   node_color_axis_label = "Log 2 ratio of median counts", #title the node color legend
+                   layout = "da", initial_layout = "re", #set the layout algorithms
+                   #key_node_label_size = 0.03,
+                   key_size = 0.6, #set the size of the key tree (aka the legend tree that shows the taxonomy information)
+                   seed = 2) #random seed used to make the graphs) #set the name to save the heat tree as a file (along the same lines as ggsave)
+ggsave("differential_heat_tree2.pdf",hm,width=115,height = 120, unit = "cm", dpi = 430)
+```
+
