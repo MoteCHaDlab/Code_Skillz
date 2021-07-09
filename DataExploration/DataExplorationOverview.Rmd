@@ -1,0 +1,239 @@
+---
+title: "An Short Introduction to General Data Exploration "
+output: html_notebook
+---
+
+Code written by Sara Williams
+Contact: swilliams@mote.org
+
+
+This is just a quick overview of some data exploration that I might use when first looking at a new dataset. First, I go through using base-R functions and then I use tidyverse functions.
+
+### Packages used:
+
+```{r}
+library(palmerpenguins)
+library(tidyverse)
+```
+
+Open-source data used in this notebook is from:
+https://allisonhorst.github.io/palmerpenguins/index.html
+
+```{r}
+citation("palmerpenguins")
+```
+
+### What is the data?
+
+One way to see this is to just print the dataframe:
+```{r}
+penguins
+```
+
+Better ways to look at large datasets:
+```{r}
+class(penguins)
+#So it's a table dataframe
+
+#Get a summary
+summary(penguins)
+
+#inspect just one column
+class(penguins$species)
+
+#get the structure which tells us about the variables
+str(penguins)
+
+#look at the first 6 rows:
+head(penguins)
+
+colnames(penguins)
+
+dim(penguins)
+
+nrow(penguins)
+ncol(penguins)
+
+length(penguins)
+length(penguins$species)
+length(levels(penguins$species))
+```
+
+### Subsetting the data
+
+```{r}
+#remember: [rows , columns]
+#select just the first 3 columns, but all rows
+penguins[,1:3]
+#select row 47 and columns 1,4
+penguins[47,c(1,4)]
+
+#subset(): select particular columns from the data, reorder columns, and select particular rows from the data
+subset(penguins,select=c("species")) #select one column
+subset(penguins,select=c("island","species")) #reorder columns
+subset(penguins,subset=species=="Adelie") #just one species
+subset(penguins,subset=species!="Adelie",select=c("species","island")) #all species not Adelie
+subset(penguins,subset=bill_length_mm>40) #observations with bill lenght > 40 mm
+```
+
+
+### Dealing with missing data
+```{r}
+
+is.na(penguins$bill_depth_mm) #logical vector of bill depths that are NA
+penguins$bill_depth_mm[!(is.na(penguins$bill_depth_mm))] #! gives all of the non NA values
+na.omit(penguins$bill_depth_mm) #changes it to an omit class, will tell you which indexes were omitted
+penguins$bill_depth_mm[complete.cases(penguins$bill_depth_mm)] #another way of getting values that arent NA
+
+```
+
+### Refresher on functions to summarize/describe quantitative data
+```{r}
+
+mean(penguins$bill_depth_mm) #using the base mean function gets an error because NA's
+mean(penguins$bill_depth_mm,na.rm=TRUE) #excludes NA
+
+median(penguins$bill_depth_mm,na.rm=TRUE)
+
+mysd<-sd(penguins$bill_depth_mm,na.rm=TRUE)
+
+mysd/sqrt(length(penguins$bill_depth_mm)) #standard error
+
+#not useful here but...
+rowSums(penguins[3:5])
+colSums(penguins[3:5],na.rm=TRUE)
+```
+
+
+### Now what about qualitative data like factors?
+```{r}
+class(penguins$species)
+levels(penguins$species) #what are the values (levels) of the factor species
+
+penguins$sex<-factor(penguins$sex,levels=c("male","female")) #will reorder the levels, but can't just use diffent words, have to stick to originial level names
+# renaming factors ####
+levels(penguins$sex)
+levels(penguins$sex)[1]<-"m"
+levels(penguins$sex)[2]<-"f"
+
+#using table 
+table(penguins$species,penguins$island)
+table(penguins$species,penguins$sex)
+```
+
+
+
+### Using the aggregate function
+When at least one variable is categorical (a factor), we may be interested in a summary statistic
+for each category. An common task when dealing with large and complex datasets it to compute
+summary statistics such as the mean or the standard deviation for subsets of the data. This can
+be accomplished by using function aggregate (type ?aggregate at the console for help).
+The first argument of aggregate is called a formula. Names that appear on the left of the ⇠
+correspond response variables and names that appear to the right of the ⇠ correspond to explanatory
+variables. In this case, the code states that we want to apply some function to weight
+based on the distinct values of feed. The second argument FUN=mean specifies that the FUNction in
+question is the mean, and the last argument data=chickwts specifies the variable in which weight
+and feed are stored.
+```{r}
+#get mean of bill length by species
+aggregate(bill_length_mm~species,FUN=mean,data=penguins)
+#now by species and island combo
+aggregate(bill_length_mm~species+island,FUN=mean,data=penguins)
+```
+
+### Some basic plots to explore the data
+```{r}
+#scatterplot - numeric & numeric
+plot(penguins$flipper_length_mm,penguins$body_mass_g)
+```
+
+```{r}
+#histogram - distribution of one numeric catergory
+hist(penguins$flipper_length_mm)
+range(penguins$flipper_length_mm,na.rm=TRUE) #range will tell you max and min
+
+# now, 3 panels, one for each species
+par(mfrow=c(3,1))
+hist(subset(penguins,subset=species=="Adelie")$flipper_length_mm,main="Adelie Flipper Length",xlim=c(170,240))
+hist(subset(penguins,subset=species=="Gentoo")$flipper_length_mm,main="Gentoo Flipper Length",xlim=c(170,240))
+hist(subset(penguins,subset=species=="Chinstrap")$flipper_length_mm,main="Chinstrap Flipper Length",xlim=c(170,240))
+```
+
+```{r}
+#boxplot: visualize more info about categorical and numeric data
+plot(penguins$bill_length_mm~penguins$species)
+```
+
+## Now same sorts of things, but using the tidyverse
+```{r}
+glimpse(penguins)
+```
+### Using pipes
+```{r}
+# Piping ####
+penguins %>%
+  select(where(is.factor)) %>%
+  glimpse()
+
+#count penguins by species and island ... similiar to table function
+penguins %>%
+  count(species, island, .drop = FALSE)
+
+# Count penguins for each species / sex
+penguins %>%
+  count(species, sex, .drop = FALSE)
+
+penguins %>%
+  select(body_mass_g, ends_with("_mm")) %>%
+  glimpse()
+
+#will filter to select rows with weight less than 3000 and choose to keep only 3 columns
+penguins_w<- penguins %>%
+  filter(body_mass_g < 3000) %>% 
+  select(species, sex, body_mass_g)
+
+#challenge, subset data to include individuals before 1995, retain columns year, sex, weight
+penguins09<- penguins %>%
+  filter(year == 2009) %>% 
+  select(year, sex, species)
+
+# add columns with mutate() ####
+penguins2<-penguins %>%
+  mutate(body_mass_kg=body_mass_g/1000) %>%
+  head
+
+penguins %>%
+  filter(!is.na(body_mass_g)) %>%
+  mutate(body_mass_kg=body_mass_g/1000) %>%
+  head
+
+#summarizing with split-apply-combine
+penguins%>%
+  group_by(sex) %>%
+  summarize(mean_body_mass_g = mean(body_mass_g, na.rm = TRUE))
+
+```
+
+```{r}
+# Scatterplot example 1: penguin flipper length versus body mass
+ggplot(data = penguins, aes(x = flipper_length_mm, y = body_mass_g)) +
+  geom_point(aes(color = species,shape = species),size = 2) +
+  scale_color_manual(values = c("darkorange","darkorchid","cyan4"))
+```
+```{r}
+# Histogram example: flipper length by species
+ggplot(data = penguins, aes(x = flipper_length_mm)) +
+  geom_histogram(aes(fill = species), alpha = 0.5, position = "identity") +
+  scale_fill_manual(values = c("darkorange","darkorchid","cyan4"))
+```
+```{r}
+ggplot(penguins,aes(x=species,y=flipper_length_mm))+
+  geom_boxplot()
+```
+
+
+
+
+
+
+
