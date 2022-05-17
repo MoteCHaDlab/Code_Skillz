@@ -1,6 +1,6 @@
 # Code_Skillz
  
- Collection of bi-weekly code materials presented during Mote Marine Lab's Coral Health and Disease program's Code SkillZ workshops. During the summer of 2021, we are meeting every other week on Friday after lab meetings (12pm). Please contact Sara with any topic suggestions!
+ Collection code materials presented during Mote Marine Lab's Coral Health and Disease program's Code SkillZ workshops. During the summer of 2021, we were meeting every other week on Friday after lab meetings (12pm). Please contact Sara with any topic suggestions!
  
  If you are presenting a topic, please create a sub-folder in this repository to share your code materials. Please use open data as much as possible for any tutorials or examples that you make, unless you are sharing something specific to your research. Please be aware that this repository is **Public** when adding materials.  
  
@@ -8,17 +8,18 @@
  
 ### Upcoming Code Skillz
 
-July 9th: Canceled
 
-July 23rd: ggplot and data visualization
 
 ### Past Code Skillz
 
 April 2021: Microbial analysis pipeline (see microbes_pipeline repository)
 
-June 11th: Samara & heat-trees
+June 11th, 2021: Samara & heat-trees
 
-June 25th: Sara & data exploration
+June 25th, 2021: Sara & data exploration
+
+
+July 23rd, 2021: ggplot and data visualization
 
 
 ### Organization (add folder descriptions here)
@@ -38,3 +39,5 @@ DataViz: code on different data visualizations and plotting. Initial code includ
 6/6/2021 - 6/9/2021 Samara edited and cleaned the heat tree code
 
 7/9/2021 Sara added DataExploration and DataViZ sub-folders
+
+5/17/2022: Sara updated readme for summer 2022
