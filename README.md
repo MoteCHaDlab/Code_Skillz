@@ -28,7 +28,7 @@ HeatTrees folder: contains the code for heat trees, and a couple of the heat tre
 
 DataExploration folder: code on initial data exploration using base R and tidyverse
 
-DataViz: code on different data visualizations and plotting. Initial code includes a notebook on barplots.
+DataViz: code on different data visualizations and plotting. Initial code includes a notebook on barplots and ggplot basics
 
 ### Updates Log
 
@@ -40,4 +40,4 @@ DataViz: code on different data visualizations and plotting. Initial code includ
 
 7/9/2021 Sara added DataExploration and DataViZ sub-folders
 
-5/17/2022: Sara updated readme for summer 2022
+5/17/2022: Sara updated readme for summer 2022 and added GGplot Basics markdown
