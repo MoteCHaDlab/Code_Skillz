@@ -1,0 +1,135 @@
+---
+title: "Understandng gglot"
+output: html_notebook
+---
+In this notebook, we are going to iteratively walk through 'building' a graph using ggplot.
+```{r}
+library(ggplot2)
+library(palmerpenguins)
+```
+Quick look at the data to figure out what we want to visualize:
+```{r}
+head(penguins)
+summary(penguins)
+penguins<-na.omit(penguins) #remove NAs
+```
+Let's visualize the relationship between bill length and flipper length.
+
+First use R base plot:
+```{r}
+plot(penguins$bill_length_mm,penguins$flipper_length_mm)
+```
+This isn't pretty and we have to add a lot of code to make it pretty.
+
+Now, let's use ggplot
+```{r}
+ggplot(penguins,aes(x=bill_length_mm,y=flipper_length_mm)) #sets up the graph characteristics
+```
+
+```{r}
+ggplot(penguins,aes(x=bill_length_mm,y=flipper_length_mm)) +
+  geom_point() #adds the points
+
+```
+
+Let's fix the labels
+```{r}
+ggplot(penguins,aes(x=bill_length_mm,y=flipper_length_mm)) +
+  geom_point() +
+  labs(x="Bill length (mm)",y="Flipper length (mm)", title="Relationship between Bill & Flipper Length") #add labels
+
+```
+Let's change the scales
+```{r}
+ggplot(penguins,aes(x=bill_length_mm,y=flipper_length_mm)) +
+  geom_point() +
+  labs(x="Bill length (mm)",y="Flipper length (mm)", title="Relationship between Bill & Flipper Length") +
+  scale_y_continuous(limits=c(150,250),breaks=c(150,175,200,225,250))+ #set y scale
+  scale_x_continuous(limits=c(30,60),breaks=c(30,40,50,60)) #set x scale
+
+```
+Let's change the theme to get rid of the grey background
+```{r}
+ggplot(penguins,aes(x=bill_length_mm,y=flipper_length_mm)) +
+  geom_point() +
+  labs(x="Bill length (mm)",y="Flipper length (mm)", title="Relationship between Bill & Flipper Length") +
+  scale_y_continuous(limits=c(150,250),breaks=c(150,175,200,225,250))+
+  scale_x_continuous(limits=c(30,60),breaks=c(30,40,50,60)) +
+  theme_bw() #changes the base style of the plot, see also theme_classic
+
+```
+
+
+Let's change the point characteristics
+- http://www.sthda.com/english/wiki/ggplot2-point-shapes
+- http://www.stat.columbia.edu/~tzheng/files/Rcolor.pdf
+```{r}
+ggplot(penguins,aes(x=bill_length_mm,y=flipper_length_mm)) +
+  geom_point(shape=22,color="blue",fill="cyan",size=2.5) + #this will make all the points have the same characteristics
+  labs(x="Bill length (mm)",y="Flipper length (mm)", title="Relationship between Bill & Flipper Length") +
+  scale_y_continuous(limits=c(150,250),breaks=c(150,175,200,225,250))+
+  scale_x_continuous(limits=c(30,60),breaks=c(30,40,50,60)) +
+  theme_bw() 
+```
+Now, let's change the point characteristics based on data attributes
+```{r}
+ggplot(penguins,aes(x=bill_length_mm,y=flipper_length_mm,color=species, shape=sex)) + #add color and shape within the aes()
+  geom_point(size=2) + 
+  labs(x="Bill length (mm)",y="Flipper length (mm)", title="Relationship between Bill & Flipper Length") +
+  scale_y_continuous(limits=c(150,250),breaks=c(150,175,200,225,250))+
+  scale_x_continuous(limits=c(30,60),breaks=c(30,40,50,60)) +
+  theme_bw() 
+```
+
+Let's pick our own colors for species
+- Another helpful tool for picking colors: https://colorbrewer2.org/#type=sequential&scheme=BuGn&n=3
+```{r}
+ggplot(penguins,aes(x=bill_length_mm,y=flipper_length_mm,color=species, shape=sex)) + 
+  geom_point(size=2) + 
+  labs(x="Bill length (mm)",y="Flipper length (mm)", title="Relationship between Bill & Flipper Length") +
+  scale_y_continuous(limits=c(150,250),breaks=c(150,175,200,225,250))+
+  scale_x_continuous(limits=c(30,60),breaks=c(30,40,50,60)) +
+  theme_bw() +
+  scale_color_manual(values=c("Adelie"="#1b9e77","Chinstrap"="#d95f02","Gentoo"="#7570b3")) #set your own colors
+```
+
+Let's pick our own shapes
+```{r}
+ggplot(penguins,aes(x=bill_length_mm,y=flipper_length_mm,color=species, shape=sex)) + 
+  geom_point(size=2) + 
+  labs(x="Bill length (mm)",y="Flipper length (mm)", title="Relationship between Bill & Flipper Length") +
+  scale_y_continuous(limits=c(150,250),breaks=c(150,175,200,225,250))+
+  scale_x_continuous(limits=c(30,60),breaks=c(30,40,50,60)) +
+  theme_bw() +
+  scale_color_manual(values=c("Adelie"="#1b9e77","Chinstrap"="#d95f02","Gentoo"="#7570b3")) +
+  scale_shape_manual(values=c("female"=17,"male"=16)) #pick your own shapes
+```
+
+Customize the legend
+```{r}
+ggplot(penguins,aes(x=bill_length_mm,y=flipper_length_mm,color=species, shape=sex)) + 
+  geom_point(size=2) + 
+  labs(x="Bill length (mm)",y="Flipper length (mm)", title="Relationship between Bill & Flipper Length", color="Penguin Species", shape="Sex")+ #change legend labels 
+  scale_y_continuous(limits=c(150,250),breaks=c(150,175,200,225,250))+
+  scale_x_continuous(limits=c(30,60),breaks=c(30,40,50,60)) +
+  theme_bw() +
+  scale_color_manual(values=c("Adelie"="#1b9e77","Chinstrap"="#d95f02","Gentoo"="#7570b3")) +
+  scale_shape_manual(values=c("female"=17,"male"=16)) +
+  theme(legend.position="bottom",legend.text = element_text(size=10),legend.title = element_text(size=12)) #move to bottom and change size of the text
+  
+```
+
+Split plot into multiple panels by year
+```{r}
+ggplot(penguins,aes(x=bill_length_mm,y=flipper_length_mm,color=species, shape=sex)) + 
+  geom_point(size=2) + 
+  labs(x="Bill length (mm)",y="Flipper length (mm)", title="Relationship between Bill & Flipper Length", color="Penguin Species",shape="Sex")+ 
+  scale_y_continuous(limits=c(150,250),breaks=c(150,175,200,225,250))+
+  scale_x_continuous(limits=c(30,60),breaks=c(30,40,50,60)) +
+  theme_bw() +
+  scale_color_manual(values=c("Adelie"="#1b9e77","Chinstrap"="#d95f02","Gentoo"="#7570b3")) +
+  scale_shape_manual(values=c("female"=17,"male"=16)) +
+  theme(legend.position="bottom",legend.text = element_text(size=10),legend.title = element_text(size=12)) +
+  facet_wrap(~year) #split data into multiple panels by year
+  
+```
